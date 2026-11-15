@@ -1,0 +1,1075 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Tiếng Gõ Cửa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: one 16:9 classroom stage on top, a subtitle tray under it, two quiet meters in the header.
+   Look: overcast chalkboard green, fluorescent tube light, a single red scarf as the only warm colour. */
+:root{
+  --ink:#0b1210;
+  --tray:#111a17;
+  --board:#1e2d29;
+  --chalk:#e9ede0;
+  --chalk-dim:#a3afa3;
+  --tube:#d6e8aa;
+  --scarf:#c4382b;
+  --line:rgba(233,237,224,.15);
+  --display:'Barlow Condensed','Arial Narrow',sans-serif;
+  --body:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--ink);color:var(--chalk);
+  font:400 16px/1.6 var(--body);
+  padding-block:14px 32px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  min-height:100%;
+}
+button{font:inherit;color:inherit}
+.app{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+
+/* header */
+.hud{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px}
+.brand{font:700 15px/1 var(--display);letter-spacing:.24em;text-transform:uppercase;color:var(--tube)}
+.slate{font-size:12.5px;color:var(--chalk-dim);letter-spacing:.03em;flex:1 1 180px;min-width:0}
+.meters{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.meter{display:grid;gap:4px;width:92px;font-size:10.5px;line-height:1;letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-dim)}
+.bar{height:4px;border-radius:2px;background:rgba(233,237,224,.12);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--tube);transition:width .7s ease}
+.meter.noise .bar i{background:var(--scarf)}
+.chip{background:transparent;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12px;line-height:1.2;cursor:pointer;color:var(--chalk-dim)}
+.chip:hover{border-color:var(--tube);color:var(--chalk)}
+
+/* stage */
+.stage{position:relative;aspect-ratio:16/9;max-width:100%;overflow:hidden;isolation:isolate;background:#050908;border:1px solid var(--line);border-radius:6px}
+.stage svg.scene{position:absolute;inset:0;width:100%;height:100%;display:block;transform-origin:84% 46%;transition:transform 2.6s cubic-bezier(.2,.7,.2,1)}
+.stage[data-view="pov"] svg.scene{transform:scale(2.1)}
+.vig,.grain,.flash,.cap,.gap,.blackout{position:absolute;inset:0;pointer-events:none}
+.vig{background:radial-gradient(ellipse at 50% 46%,transparent 42%,rgba(0,0,0,.7) 100%)}
+.grain{opacity:.1;mix-blend-mode:overlay;background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");animation:grain .9s steps(4) infinite}
+.flash{background:#eef5dd;opacity:0}
+.flash.on{animation:flash .55s ease-out}
+.cap{display:flex;align-items:center;justify-content:center;font:700 clamp(40px,12vw,120px)/1 var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--chalk);text-shadow:0 2px 24px rgba(0,0,0,.8);opacity:0;text-align:center;padding:0 12px}
+.cap.on{animation:capin 1.3s ease-out}
+.gap{opacity:0;transition:opacity .5s}
+.gap.on{opacity:1}
+.gap svg{width:100%;height:100%;display:block}
+.blackout{background:#000;opacity:0;transition:opacity .7s}
+.blackout.on{opacity:1}
+.stage.shake{animation:shake .45s}
+
+/* scene graphics */
+.fan .blades,.blades{animation:spin 1.2s linear infinite;transform-origin:0 0}
+.tube{animation:flick 7s infinite}
+.cur{transition:transform 1.1s ease;transform:scaleX(.26)}
+.cur.L{transform-box:fill-box;transform-origin:left center}
+.cur.R{transform-box:fill-box;transform-origin:right center}
+.stage[data-curtain="closed"] .cur{transform:scaleX(1)}
+.shaft{transition:opacity 1.2s;opacity:.5}
+.stage[data-curtain="closed"] .shaft{opacity:.05}
+.dimmer{opacity:.06;transition:opacity 1.8s}
+.stage[data-light="dim"] .dimmer{opacity:.34}
+.stage[data-light="dark"] .dimmer{opacity:.5}
+.bolt{transition:transform .3s;transform-box:fill-box}
+.lockdot{fill:#6f7a6b;transition:fill .3s}
+.stage[data-lock="1"] .bolt{transform:translateX(-9px)}
+.stage[data-lock="1"] .lockdot{fill:var(--scarf)}
+.barricade{opacity:0;transform:translateY(18px);transition:opacity .9s,transform .9s}
+.stage[data-block="1"] .barricade{opacity:1;transform:none}
+.feet{opacity:0;transition:opacity .4s}
+.stage[data-outside="1"] .feet{opacity:1}
+.phoneglow{opacity:0;transition:opacity .4s}
+.stage[data-phone="on"] .phoneglow{opacity:1;animation:phone 2.4s ease-in-out infinite}
+.stu{transform-box:fill-box;transform-origin:50% 100%}
+.stage.flinch .stu{animation:flinch .55s ease-out var(--d,0ms)}
+.arm{transform-box:fill-box;transform-origin:0% 100%;animation:write 1.8s ease-in-out infinite}
+.stage[data-teacher="freeze"] .arm{animation-play-state:paused}
+.head{transform-box:fill-box;transform-origin:50% 100%;transition:transform .6s}
+.glasses{opacity:0;transition:opacity .4s}
+.stage[data-friend="turn"] .friend .head{transform:rotate(-14deg) translateX(-3px)}
+.stage[data-friend="turn"] .friend .glasses{opacity:1}
+.pa .w{opacity:0;fill:none;stroke:var(--tube);stroke-width:2;stroke-linecap:round}
+.stage[data-pa="on"] .pa .w{animation:wave 1s ease-out infinite}
+.stage[data-pa="on"] .pa .w2{animation-delay:.25s}
+.hot{fill:transparent;stroke:var(--tube);stroke-width:2.5;stroke-dasharray:7 6;opacity:0;pointer-events:none}
+.hot.on{opacity:.9;pointer-events:all;cursor:pointer;animation:pulse 1.5s ease-in-out infinite}
+
+/* v2: camera, phone, fx */
+.stage svg.scene{transition:transform 2.6s cubic-bezier(.2,.7,.2,1),filter 1.2s}
+svg.scene.cut{transition:none!important}
+.stage[data-view="teacher"] svg.scene{transform-origin:31% 56%;transform:scale(2.3)}
+.stage[data-view="board"] svg.scene{transform-origin:48% 30%;transform:scale(2.1)}
+.stage[data-view="door"] svg.scene{transform-origin:84% 46%;transform:scale(2.5)}
+.stage[data-view="dat"] svg.scene{transform-origin:19% 86%;transform:scale(2.5)}
+.stage[data-view="window"] svg.scene{transform-origin:12% 36%;transform:scale(2.4)}
+.stage[data-view="phone"] svg.scene{transform-origin:24% 94%;transform:scale(3.6);filter:blur(3px) brightness(.45)}
+.bars{position:absolute;inset:0;pointer-events:none}
+.bars::before,.bars::after{content:"";position:absolute;left:0;right:0;height:0;background:#000;transition:height .8s}
+.bars::before{top:0}.bars::after{bottom:0}
+.stage:not([data-view=""]) .bars::before,.stage:not([data-view=""]) .bars::after{height:8%}
+.stage[data-view="phone"] .bars::before,.stage[data-view="phone"] .bars::after{height:0}
+.phone{position:absolute;left:50%;top:50%;height:94%;aspect-ratio:9/17;max-width:72%;z-index:3;transform:translate(-50%,-30%) scale(.25);transform-origin:20% 100%;opacity:0;pointer-events:none;transition:transform 1.1s cubic-bezier(.2,.8,.2,1),opacity .5s;background:#060a09;border:3px solid #2a3532;border-radius:20px;box-shadow:0 0 70px rgba(214,232,170,.28);display:flex;flex-direction:column;overflow:hidden}
+.stage[data-view="phone"] .phone{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.phone.buzz{animation:vib .45s}
+.ph-s{display:flex;justify-content:space-between;padding:6px 12px;font-size:10px;color:var(--chalk-dim)}
+.ph-h{padding:4px 12px 8px;border-bottom:1px solid var(--line);font-weight:600;font-size:13px}
+.ph-h small{display:block;font-weight:400;font-size:10px;color:var(--chalk-dim)}
+.ph-m{flex:1;overflow:auto;display:flex;flex-direction:column;gap:5px;padding:8px}
+.ph-n{position:absolute;left:8px;right:8px;top:-70px;background:#2d3a36;border-radius:10px;padding:6px 10px;font-size:11px;transition:top .4s;z-index:2}
+.ph-n.on{top:6px}
+.ph-i{padding:8px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--chalk-dim)}
+.phone .b{font-size:clamp(10px,1.7vw,14px);padding:5px 9px}
+.sil{fill:#070b0a;opacity:0}.sil.go{animation:sil .9s linear}
+.stage.rat .bolt{animation:rat .55s}
+.txt.think{color:var(--chalk-dim);font-style:italic}
+.panel{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--chalk-dim)}
+.panel input{accent-color:var(--tube);vertical-align:middle}
+@keyframes vib{0%,100%{translate:0 0}15%{translate:-5px 2px;rotate:-1.5deg}35%{translate:5px -2px;rotate:1.5deg}55%{translate:-3px 1px}75%{translate:3px 0}}
+@keyframes rat{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px) rotate(4deg)}60%{transform:translateX(3px)}}
+@keyframes sil{0%{opacity:.95;transform:translate(40px,232px)}100%{opacity:.95;transform:translate(215px,232px)}}
+@media (max-width:700px){.stage[data-view="phone"]{aspect-ratio:3/4}.stage{transition:aspect-ratio .5s}}
+/* v2.1 */
+svg.scene.cut,.scene2.cut{transition:none!important}
+.scene2{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transition:opacity .35s,transform 5s ease;transform-origin:50% 50%}
+.stage[data-loc="hall"] #sceneHall,.stage[data-loc="wc"] #sceneWC,.stage[data-loc="office"] #sceneOffice{opacity:1;transform:scale(1.1)}
+.stage:not([data-loc=""]) svg.scene{opacity:0}
+.stage[data-loc="hall"][data-view="door"] #sceneHall{transform-origin:86% 58%;transform:scale(2.4)}
+.stage[data-loc="wc"][data-view="na"] #sceneWC{transform-origin:58% 66%;transform:scale(2.4)}
+.stage[data-loc="wc"][data-view="foot"] #sceneWC{transform-origin:58% 82%;transform:scale(3)}
+.stage[data-loc="office"][data-view="screens"] #sceneOffice{transform-origin:50% 26%;transform:scale(2.5)}
+.stage[data-loc="office"][data-view="face"] #sceneOffice{transform-origin:40% 58%;transform:scale(2.2)}
+.t1{animation:flick 6s infinite}.t2{animation:flick 9s 2s infinite}.t3{animation:flick 5s 1s infinite}
+.walker{opacity:0;transform:translateX(-100px)}
+.stage[data-walk="1"] .walker{opacity:1;animation:walk 9s linear forwards}
+.stage[data-walk="1"] .wb{animation:wbob .55s ease-in-out infinite}
+.floorph{opacity:0}.stage[data-ph="1"] .floorph{opacity:1;animation:phone 2.4s ease-in-out infinite}
+.stage.rat .hbolt{animation:rat .55s}
+.breath{transform-box:fill-box;transform-origin:50% 100%;animation:breath 2.6s ease-in-out infinite}
+.stage[data-fear="1"] .breath{animation-duration:.8s}
+.bat{animation:nextp 1.2s infinite}
+.drop{animation:drip 2.2s ease-in infinite}
+.wcfoot{opacity:0}.stage[data-wcfoot="1"] .wcfoot{opacity:.9;animation:foot 5s linear forwards}
+.onair{opacity:.2}.stage[data-mic="1"] .onair{animation:pulse 1s infinite;opacity:1}
+.vu{transform-box:fill-box;transform-origin:50% 100%;animation:vu .5s ease-in-out infinite alternate}
+.stage[data-mic="1"] .vu{animation-duration:.18s}
+.cam3{animation:glitch 3s steps(2) infinite}
+.rain{stroke:#cfe0d6;stroke-opacity:.55;stroke-width:1.3;animation:rain .8s linear infinite}
+#teacher{transition:transform 2.4s ease-in-out}
+.stage[data-teacher="go"] #teacher{animation:pace 14s ease-in-out infinite alternate}
+.stage[data-teacher="freeze"] #teacher{animation-play-state:paused}
+.stage[data-teacher="door"] #teacher{transform:translate(440px,0)}
+.stage[data-teacher="door"] .arm,.stage[data-teacher="door"] .dust{animation:none;display:none}
+.dust circle{fill:#e9ede0;opacity:0;animation:dust 2.2s ease-out infinite}
+.dust circle:nth-child(2){animation-delay:.7s}.dust circle:nth-child(3){animation-delay:1.4s}
+.stage[data-teacher="freeze"] .dust circle{animation-play-state:paused}
+.uline{fill:none;stroke:#dfe6d3;stroke-opacity:.7;stroke-width:2;stroke-dasharray:160;animation:draw 6s ease-in-out infinite}
+.eqw{opacity:0;animation:eqin 6s infinite}
+#rowFar .stu .head,#rowMid .stu .head{animation:nod 5s ease-in-out infinite;animation-delay:calc(var(--d)*-30)}
+.stage[data-teacher="freeze"] .head{animation-play-state:paused}
+.stage[data-fear="1"] .stu:not(.hl){animation:trem .16s linear infinite alternate}
+.hl{transition:translate 2.6s ease-in-out}
+.stage[data-hb="1"] .hA{translate:412px -26px}
+.stage[data-hb="1"] .hB{translate:382px -26px}
+.stage[data-hc="1"] .hC{translate:-118px -26px}
+.stage[data-hb="1"] .hA,.stage[data-hb="1"] .hB,.stage[data-hc="1"] .hC{animation:stepb .42s ease-in-out 6}
+.barricade{transform:translateX(-110px);transition:opacity 2.2s,transform 2.6s ease-in-out}
+.stage[data-block="1"] .barricade{opacity:1;transform:none}
+.toast{position:absolute;left:50%;top:11%;transform:translate(-50%,-10px);opacity:0;background:rgba(10,16,15,.88);border:1px solid var(--tube);color:var(--chalk);padding:6px 14px;border-radius:999px;font-size:12px;line-height:1.4;transition:.4s;z-index:4;pointer-events:none;max-width:92%;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.tbc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;pointer-events:none;transition:opacity 1.6s;background:#000;z-index:5;text-align:center;padding:0 10px}
+.tbc.on{opacity:1}
+.tbc b{font:700 clamp(30px,9vw,96px)/1 var(--display);letter-spacing:.14em;color:var(--chalk)}
+.tbc small{font-size:14px;color:var(--chalk-dim);letter-spacing:.1em}
+@keyframes walk{from{transform:translateX(-100px)}to{transform:translateX(780px)}}
+@keyframes wbob{50%{transform:translateY(-4px)}}
+@keyframes breath{50%{transform:scale(1.02,1.03)}}
+@keyframes drip{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(46px);opacity:0}}
+@keyframes foot{0%{transform:translateX(-360px)}40%,70%{transform:translateX(-30px)}100%{transform:translateX(400px)}}
+@keyframes vu{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
+@keyframes glitch{0%{opacity:1}50%{opacity:.45}}
+@keyframes rain{from{transform:translateY(0)}to{transform:translateY(190px)}}
+@keyframes pace{from{transform:translateX(0)}to{transform:translateX(70px)}}
+@keyframes dust{0%{opacity:.8;transform:translate(0,0)}100%{opacity:0;transform:translate(6px,24px)}}
+@keyframes draw{0%{stroke-dashoffset:160}50%,100%{stroke-dashoffset:0}}
+@keyframes eqin{0%,45%{opacity:0}65%,100%{opacity:.85}}
+@keyframes nod{0%,60%,100%{transform:none}70%{transform:rotate(5deg) translateY(2px)}85%{transform:none}}
+@keyframes trem{from{transform:translateX(-.8px)}to{transform:translateX(.8px)}}
+@keyframes stepb{50%{transform:translateY(-4px)}}
+/* tray */
+.tray{display:flex;flex-direction:column;gap:12px;min-height:260px;padding:18px clamp(14px,3vw,26px) 20px;background:linear-gradient(#111a17,#0d1412);border:1px solid var(--line);border-radius:6px}
+.who{min-height:13px;font:600 13px/1 var(--display);letter-spacing:.22em;text-transform:uppercase;color:var(--tube)}
+.txt{max-width:62ch;min-height:3.4em;font-size:clamp(16px,2.3vw,19px);line-height:1.65;white-space:pre-line}
+.txt.narr{color:var(--chalk-dim);font-style:italic}
+.txt.say{color:var(--chalk)}
+.txt.whisper{letter-spacing:.01em}
+.act{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+.act.big{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opt{display:flex;gap:12px;align-items:baseline;text-align:left;width:100%;padding:12px 14px;background:rgba(233,237,224,.05);border:1px solid var(--line);border-radius:4px;cursor:pointer;line-height:1.45}
+.opt:hover{border-color:var(--tube);background:rgba(214,232,170,.07)}
+.opt .k{flex:none;min-width:1.4em;font:600 13px/1 var(--display);letter-spacing:.1em;color:var(--tube)}
+.act.big .opt{justify-content:center;text-align:center;padding:22px 12px;font:700 clamp(24px,5vw,34px)/1.1 var(--display);letter-spacing:.08em}
+.next{align-self:flex-end;background:transparent;border:0;padding:8px 4px;color:var(--tube);cursor:pointer;font-size:15px;letter-spacing:.04em;animation:nextp 1.6s ease-in-out infinite}
+.hold{position:relative;overflow:hidden;width:100%;padding:18px 14px;border:1px solid var(--tube);border-radius:4px;background:rgba(214,232,170,.05);cursor:pointer;user-select:none;touch-action:none;-webkit-user-select:none}
+.hold .fill{position:absolute;inset:0 auto 0 0;width:0;background:rgba(214,232,170,.28)}
+.hold .lbl{position:relative}
+.link{align-self:flex-start;background:none;border:0;padding:4px 0;color:var(--chalk-dim);font-size:13px;text-decoration:underline;cursor:pointer}
+button:focus-visible{outline:2px solid var(--tube);outline-offset:2px}
+
+/* chat */
+.chat{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow:auto;padding:10px;background:#0a100f;border:1px solid var(--line);border-radius:10px}
+.chat-h{font:600 12px/1 var(--display);letter-spacing:.18em;text-transform:uppercase;color:var(--chalk-dim);padding-bottom:6px;border-bottom:1px solid var(--line)}
+.b{max-width:82%;padding:7px 12px;border-radius:14px;font-size:15px;line-height:1.4}
+.b.in{align-self:flex-start;background:#26312e}
+.b.out{align-self:flex-end;background:#2f4733}
+.b.typing{display:flex;gap:4px;align-items:center;padding:11px 12px}
+.b.typing i{width:6px;height:6px;border-radius:50%;background:var(--chalk-dim);animation:dots 1s infinite}
+.b.typing i:nth-child(2){animation-delay:.15s}
+.b.typing i:nth-child(3){animation-delay:.3s}
+
+/* title + end */
+.box{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.eyebrow{margin:0;font:600 13px/1 var(--display);letter-spacing:.24em;text-transform:uppercase;color:var(--tube)}
+h1,h2{margin:0;font-family:var(--display);font-weight:700;text-transform:uppercase;line-height:.95;text-wrap:balance}
+h1{font-size:clamp(48px,10vw,88px);letter-spacing:.04em}
+h2{font-size:clamp(34px,6vw,52px);letter-spacing:.05em}
+.lede{margin:0;max-width:58ch;font-size:17px}
+.note{margin:0;max-width:58ch;font-size:14px;color:var(--chalk-dim)}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.btn{padding:12px 20px;border:1px solid var(--tube);border-radius:4px;background:var(--tube);color:#101810;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--chalk)}
+.recap{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;color:var(--chalk-dim)}
+.recap span{display:inline-block;min-width:9.5em;color:var(--tube);font:600 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes grain{0%{background-position:0 0}25%{background-position:-40px 20px}50%{background-position:30px -30px}75%{background-position:-20px -40px}100%{background-position:0 0}}
+@keyframes flash{0%{opacity:.75}100%{opacity:0}}
+@keyframes capin{0%{opacity:0;transform:scale(1.25)}12%{opacity:1;transform:scale(1)}70%{opacity:1}100%{opacity:0}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-3px,2px)}80%{transform:translate(2px,-1px)}}
+@keyframes flick{0%,90%,100%{opacity:1}92%{opacity:.5}94%{opacity:1}96%{opacity:.7}}
+@keyframes flinch{0%{transform:none}30%{transform:translateY(-7px) scale(1.03)}100%{transform:none}}
+@keyframes write{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(7deg)}}
+@keyframes wave{0%{opacity:.9}100%{opacity:0}}
+@keyframes pulse{0%,100%{stroke-opacity:.4}50%{stroke-opacity:1}}
+@keyframes phone{0%,100%{opacity:.7}40%{opacity:1}65%{opacity:.55}}
+@keyframes nextp{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes dots{0%,100%{opacity:.25}50%{opacity:1}}
+@media (max-width:560px){.act.big{grid-template-columns:1fr}.meter{width:78px}}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .cap.on{animation:none;opacity:1}
+}
+</style>
+
+<main class="app">
+  <header class="hud">
+    <span class="brand">Tiếng Gõ Cửa</span>
+    <span class="slate" id="sceneLabel">Lớp 8A2 · Tiết ba</span>
+    <div class="meters">
+      <div class="meter"><span>Bình tĩnh</span><div class="bar"><i id="mCalm" style="width:70%"></i></div></div>
+      <div class="meter noise"><span>Độ ồn</span><div class="bar"><i id="mNoise" style="width:0%"></i></div></div>
+      <button class="chip" id="mute" type="button" aria-pressed="false">Âm thanh: bật</button>
+      <button class="chip" id="clueBtn" type="button">Manh mối: 0</button>
+      <button class="chip" id="gear" type="button" aria-expanded="false" aria-controls="settings">Cài đặt</button>
+    </div>
+  </header>
+  <div class="panel" id="cluePanel" hidden><ol id="clueList" style="margin:0;padding-left:18px"><li>Chưa có manh mối nào.</li></ol></div>
+  <div class="panel" id="settings" hidden><label>Âm lượng <input type="range" id="vol" min="0" max="100" value="70" aria-label="Âm lượng"></label><button class="chip" id="vtog" type="button">Giọng nói: bật</button><button class="chip" id="ftog" type="button">Hiệu ứng mạnh: bật</button></div>
+
+  <section class="stage" id="stage" data-curtain="open" data-light="normal" data-phone="off" data-pa="off" data-teacher="go" data-friend="" data-outside="0" data-view="" data-lock="0" data-block="0" data-loc="" data-hb="0" data-hc="0" data-fear="0" data-walk="0" data-ph="0" data-mic="0" data-wcfoot="0">
+    <svg class="scene" id="scene" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Phòng học lớp 8A2: bảng đen ở giữa, cửa sổ bên trái, cửa ra vào bên phải, các dãy bàn đôi phía trước">
+      <defs>
+        <linearGradient id="gWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b4844"/><stop offset="1" stop-color="#2b3632"/></linearGradient>
+        <linearGradient id="gFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b312d"/><stop offset="1" stop-color="#171c19"/></linearGradient>
+        <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a7b5ae"/><stop offset="1" stop-color="#6e7f78"/></linearGradient>
+        <linearGradient id="gBoard" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#27382f"/><stop offset="1" stop-color="#1b2a25"/></linearGradient>
+        <linearGradient id="gShaft" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e4eed3" stop-opacity=".4"/><stop offset="1" stop-color="#e4eed3" stop-opacity="0"/></linearGradient>
+        <pattern id="curt" width="14" height="10" patternUnits="userSpaceOnUse"><rect width="14" height="10" fill="#8f8a72"/><rect width="5" height="10" fill="#7c775f"/></pattern>
+        <pattern id="tile" width="80" height="36" patternUnits="userSpaceOnUse"><path d="M0 0H80M0 0V36" stroke="#0b1210" stroke-opacity=".4" fill="none"/></pattern>
+        <filter id="b6" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
+        <filter id="b3" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>
+      </defs>
+
+      <rect width="960" height="394" fill="url(#gWall)"/>
+      <rect y="384" width="960" height="12" fill="#232c29"/>
+      <rect y="394" width="960" height="146" fill="url(#gFloor)"/>
+      <rect y="394" width="960" height="146" fill="url(#tile)"/>
+      <rect width="960" height="44" fill="#18201e"/>
+      <ellipse cx="480" cy="46" rx="230" ry="26" fill="#e5f2c4" opacity=".1" filter="url(#b6)"/>
+      <rect class="tube" x="330" y="27" width="300" height="7" rx="3" fill="#e9f5cc"/>
+
+      <rect x="148" y="44" width="4" height="16" fill="#0e1412"/>
+      <g transform="translate(150 62) scale(1 .2)"><g class="blades"><ellipse cx="36" cy="0" rx="34" ry="10" fill="#c7cdc2"/><ellipse cx="36" cy="0" rx="34" ry="10" fill="#c7cdc2" transform="rotate(120)"/><ellipse cx="36" cy="0" rx="34" ry="10" fill="#c7cdc2" transform="rotate(240)"/><circle r="9" fill="#0e1412"/></g></g>
+      <rect x="808" y="44" width="4" height="16" fill="#0e1412"/>
+      <g transform="translate(810 62) scale(1 .2)"><g class="blades"><ellipse cx="36" cy="0" rx="34" ry="10" fill="#c7cdc2"/><ellipse cx="36" cy="0" rx="34" ry="10" fill="#c7cdc2" transform="rotate(120)"/><ellipse cx="36" cy="0" rx="34" ry="10" fill="#c7cdc2" transform="rotate(240)"/><circle r="9" fill="#0e1412"/></g></g>
+
+      <!-- motto + board -->
+      <rect x="262" y="62" width="436" height="26" rx="2" fill="#2a3532"/>
+      <text x="480" y="80" text-anchor="middle" font-family="Barlow Condensed,sans-serif" font-weight="600" font-size="15" letter-spacing="3" fill="#cfc9a8">TIÊN HỌC LỄ, HẬU HỌC VĂN</text>
+      <rect x="248" y="98" width="464" height="196" rx="3" fill="#4a3d2e"/>
+      <rect x="256" y="106" width="448" height="180" fill="url(#gBoard)"/>
+      <text x="276" y="140" font-family="Be Vietnam Pro,sans-serif" font-size="19" fill="#dfe6d3" fill-opacity=".8">Bài 4. Định lý Pi-ta-go</text>
+      <text x="276" y="196" font-family="Be Vietnam Pro,sans-serif" font-size="36" fill="#dfe6d3" fill-opacity=".85">a² + b² = c²</text>
+      <path class="uline" d="M276 208 H436"/><text class="eqw" x="276" y="246" font-family="Be Vietnam Pro,sans-serif" font-size="22" fill="#dfe6d3">3² + 4² = 25</text>
+      <path d="M590 262 L590 166 L676 262 Z" fill="none" stroke="#dfe6d3" stroke-opacity=".65" stroke-width="2"/>
+      <path d="M590 248 h14 v14" fill="none" stroke="#dfe6d3" stroke-opacity=".65" stroke-width="2"/>
+      <rect x="256" y="286" width="448" height="6" fill="#3a2f22"/>
+
+      <!-- window -->
+      <rect x="24" y="92" width="206" height="222" fill="#4a3d2e"/>
+      <rect x="30" y="98" width="194" height="210" fill="url(#gSky)"/>
+      <path d="M30 308 V262 q20 -30 40 -8 q16 -34 44 -6 q22 -30 52 0 q24 -22 58 4 V308Z" fill="#2a3a35"/>
+      <g class="sil"><ellipse cx="0" cy="0" rx="9" ry="10"/><path d="M-17 70 C-17 28 -8 12 0 12 C8 12 17 28 17 70Z"/></g>
+      <path d="M127 98 V308 M30 203 H224" stroke="#4a3d2e" stroke-width="4"/>
+      <rect class="cur L" x="30" y="98" width="98" height="210" fill="url(#curt)"/>
+      <rect class="cur R" x="126" y="98" width="98" height="210" fill="url(#curt)"/>
+      <rect x="18" y="88" width="218" height="6" rx="2" fill="#17201d"/>
+      <polygon class="shaft" points="34,300 222,300 540,540 190,540" fill="url(#gShaft)"/>
+
+      <!-- door -->
+      <rect x="808" y="94" width="60" height="15" rx="2" fill="#1d2724"/>
+      <text x="838" y="106" text-anchor="middle" font-family="Barlow Condensed,sans-serif" font-weight="700" font-size="13" letter-spacing="2" fill="#cfc9a8">8A2</text>
+      <rect x="766" y="112" width="138" height="282" fill="#3d3225"/>
+      <rect x="774" y="120" width="122" height="274" fill="#6b563c"/>
+      <rect x="786" y="196" width="98" height="86" fill="#5d4a33"/>
+      <rect x="786" y="294" width="98" height="84" fill="#5d4a33"/>
+      <rect x="798" y="140" width="22" height="46" fill="#b9c8ae" opacity=".7"/>
+      <g class="bolt"><rect x="856" y="226" width="26" height="8" rx="2" fill="#c8c0a8"/><circle class="lockdot" cx="882" cy="230" r="3.6"/></g>
+      <rect x="774" y="388" width="122" height="5" fill="#e5f2c4" opacity=".55"/>
+      <g class="feet"><ellipse cx="826" cy="390.5" rx="8" ry="2.6" fill="#050808"/><ellipse cx="848" cy="390.5" rx="8" ry="2.6" fill="#050808"/></g>
+      <g class="pa"><rect x="722" y="64" width="34" height="26" rx="3" fill="#18201e"/><circle cx="739" cy="77" r="8" fill="#0a0f0e"/><path class="w" d="M762 70 q8 7 0 14"/><path class="w w2" d="M768 66 q12 11 0 22"/></g>
+
+      <g id="teacher"></g>
+      <g id="rowFar"></g>
+      <g id="rowMid"></g>
+      <g class="barricade">
+        <rect x="768" y="352" width="136" height="12" rx="2" fill="#7a6446"/>
+        <rect x="774" y="364" width="6" height="42" fill="#3a2f22"/><rect x="892" y="364" width="6" height="42" fill="#3a2f22"/>
+        <rect x="784" y="316" width="108" height="11" rx="2" fill="#6d5a40" transform="rotate(-3 838 322)"/>
+        <rect x="792" y="327" width="6" height="25" fill="#3a2f22"/><rect x="876" y="327" width="6" height="25" fill="#3a2f22"/>
+        <rect x="806" y="268" width="38" height="48" rx="3" fill="#2e3b45" transform="rotate(4 825 292)"/>
+      </g>
+      <g id="rowNear"></g>
+      <g class="phoneglow"><ellipse cx="232" cy="506" rx="34" ry="16" fill="#d6e8aa" opacity=".45" filter="url(#b6)"/><rect x="226" y="494" width="11" height="19" rx="2" fill="#eef7d3" transform="rotate(12 231 503)"/></g>
+
+      <rect class="dimmer" width="960" height="540" fill="#02060a"/>
+      <rect class="hot" id="hotCurtain" x="24" y="92" width="206" height="222"/>
+      <rect class="hot" id="hotLock" x="846" y="214" width="46" height="34"/>
+      <rect class="hot" id="hotBlock" x="766" y="300" width="142" height="106"/>
+    </svg>
+
+    <svg class="scene2" id="sceneHall" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs><linearGradient id="hFl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#262e2a"/><stop offset="1" stop-color="#0e1311"/></linearGradient><linearGradient id="hCone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e4eed3" stop-opacity=".25"/><stop offset="1" stop-color="#e4eed3" stop-opacity="0"/></linearGradient></defs>
+      <rect width="960" height="540" fill="#0a100e"/><rect width="960" height="70" fill="#121916"/><rect y="70" width="960" height="324" fill="#27322d"/><rect y="300" width="960" height="94" fill="#1f2925" opacity=".6"/><rect y="394" width="960" height="146" fill="url(#hFl)"/><rect y="388" width="960" height="8" fill="#161d1a"/>
+      <g class="tube t1"><rect x="90" y="60" width="150" height="7" rx="3" fill="#e9f5cc"/><polygon points="90,67 240,67 300,394 30,394" fill="url(#hCone)"/></g>
+      <g class="tube t2"><rect x="410" y="60" width="150" height="7" rx="3" fill="#e9f5cc"/><polygon points="410,67 560,67 620,394 350,394" fill="url(#hCone)"/></g>
+      <g class="tube t3"><rect x="730" y="60" width="150" height="7" rx="3" fill="#e9f5cc"/><polygon points="730,67 880,67 940,394 670,394" fill="url(#hCone)"/></g>
+      <g id="hdoors"></g>
+      <rect x="260" y="190" width="100" height="74" fill="#4a3d2e"/><rect x="268" y="198" width="36" height="46" fill="#d9d3b8" opacity=".8"/><rect x="312" y="204" width="38" height="40" fill="#b9c8ae" opacity=".7"/>
+      <rect x="590" y="300" width="18" height="62" rx="4" fill="#c4382b"/>
+      <ellipse cx="165" cy="440" rx="100" ry="12" fill="#e4eed3" opacity=".06"/><ellipse cx="485" cy="440" rx="100" ry="12" fill="#e4eed3" opacity=".06"/><ellipse cx="805" cy="440" rx="100" ry="12" fill="#e4eed3" opacity=".06"/>
+      <g class="walker"><g class="wb"><g transform="translate(0 394)"><ellipse rx="38" ry="8" fill="#050707" opacity=".6"/><circle cx="0" cy="-212" r="20" fill="#050707"/><path d="M-34 0 C-34 -100 -30 -180 0 -190 C30 -180 34 -100 34 0Z" fill="#050707"/><rect x="30" y="-120" width="12" height="20" rx="2" fill="#d6e8aa"/></g></g></g>
+      <g class="floorph"><ellipse cx="828" cy="396" rx="44" ry="8" fill="#d6e8aa" opacity=".35"/><rect x="820" y="392" width="16" height="9" rx="2" fill="#eef7d3"/></g>
+    </svg>
+    <svg class="scene2" id="sceneWC" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs><pattern id="wt" width="48" height="48" patternUnits="userSpaceOnUse"><rect width="48" height="48" fill="#8fa39a"/><path d="M0 0H48M0 0V48" stroke="#2b3a35" stroke-opacity=".5" fill="none"/></pattern><clipPath id="wclip"><rect x="780" y="50" width="120" height="70"/></clipPath></defs>
+      <rect width="960" height="540" fill="url(#wt)"/><rect width="960" height="540" fill="#08100e" opacity=".66"/><rect y="420" width="960" height="120" fill="#141c19"/>
+      <rect x="780" y="50" width="120" height="70" fill="#a7b5ae" opacity=".55"/><g clip-path="url(#wclip)" id="wrain"></g><path d="M840 50 V120 M780 85 H900" stroke="#1a2420" stroke-width="4"/>
+      <rect x="40" y="250" width="90" height="12" fill="#cdd5d0" opacity=".7"/><rect x="82" y="262" width="6" height="40" fill="#cdd5d0" opacity=".5"/><circle class="drop" cx="85" cy="304" r="3" fill="#cfe0d6"/>
+      <g class="stall"><rect x="250" y="130" width="180" height="290" fill="#2f3d38"/><rect x="262" y="145" width="156" height="262" fill="#3a4a44"/><rect x="262" y="405" width="156" height="20" fill="#0c1210" opacity=".6"/></g>
+      <g><rect x="450" y="130" width="360" height="290" fill="#2f3d38"/><rect x="462" y="140" width="336" height="270" fill="#1c2824"/></g>
+      <rect x="520" y="310" width="80" height="62" rx="8" fill="#cdd5d0" opacity=".85"/>
+      <g class="na" transform="translate(590 372)"><g class="breath"><path d="M-34 0 C-34 -60 -26 -92 0 -92 C26 -92 34 -60 34 0Z" fill="#c6cfc8"/><circle cy="-112" r="22" fill="#c59b78"/><path d="M-24 -116 a24 24 0 1 1 48 0 q0 8 -6 10 q-18 6 -36 0 q-6 -2 -6 -10z" fill="#0c0f10"/><circle cx="-30" cy="-98" r="8" fill="#0c0f10"/><circle cx="30" cy="-98" r="8" fill="#0c0f10"/><circle cx="-30" cy="-106" r="3.5" fill="#c4382b"/><circle cx="30" cy="-106" r="3.5" fill="#c4382b"/><path d="M-30 -52 Q-10 -26 22 -48" stroke="#c6cfc8" stroke-width="13" fill="none" stroke-linecap="round"/><rect x="-8" y="-74" width="14" height="24" rx="2" fill="#0a0d0c" stroke="#3a4642"/><rect class="bat" x="-5" y="-68" width="8" height="4" fill="#c4382b"/><ellipse cx="48" cy="-14" rx="6" ry="9" fill="#e9ede0"/><ellipse cx="45" cy="-28" rx="3" ry="8" fill="#e9ede0"/><ellipse cx="52" cy="-28" rx="3" ry="8" fill="#e9ede0"/></g></g>
+      <g><rect x="450" y="130" width="360" height="290" fill="#3a4a44" opacity=".3"/><rect x="450" y="405" width="360" height="15" fill="#0c1210" opacity=".5"/></g>
+      <g class="wcfoot"><ellipse cx="560" cy="432" rx="10" ry="4" fill="#020404"/><ellipse cx="590" cy="432" rx="10" ry="4" fill="#020404"/></g>
+      <rect x="840" y="130" width="100" height="290" fill="#2f3d38"/><rect x="850" y="145" width="80" height="262" fill="#3a4a44"/>
+    </svg>
+    <svg class="scene2" id="sceneOffice" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs><clipPath id="oclip"><rect x="40" y="70" width="190" height="210"/></clipPath><pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="2" fill="#000" opacity=".25"/></pattern></defs>
+      <rect width="960" height="540" fill="#262c29"/><rect y="330" width="960" height="210" fill="#1b1a17"/><rect y="296" width="960" height="40" fill="#4a3a2a"/>
+      <rect x="40" y="70" width="190" height="210" fill="#6e7f78"/><g clip-path="url(#oclip)" id="orain"></g><path d="M40 110H230M40 150H230M40 190H230M40 230H230" stroke="#2a3330" stroke-width="5"/><rect x="34" y="64" width="202" height="6" fill="#17201d"/>
+      <rect x="730" y="60" width="150" height="100" fill="#b3261e"/><polygon points="805,82 812,104 835,104 817,117 824,139 805,126 786,139 793,117 775,104 798,104" fill="#e8c43c"/>
+      <rect x="320" y="56" width="310" height="180" fill="#0c1110" stroke="#3a4642"/>
+      <g font-family="Barlow Condensed,sans-serif" font-size="10" fill="#d6e8aa"><rect x="330" y="64" width="140" height="76" fill="#1c2a25"/><text x="336" y="76">CAM 01 · CỔNG</text><rect x="480" y="64" width="140" height="76" fill="#1c2a25"/><text x="486" y="76">CAM 02 · SÂN</text><rect x="480" y="150" width="140" height="76" fill="#1c2a25"/><text x="486" y="162">CAM 04 · DÃY B</text><g class="cam3"><rect x="330" y="150" width="140" height="76" fill="#33403b"/><text x="336" y="162">CAM 03 · DÃY A</text><path d="M340 200H460M340 190H430" stroke="#e9ede0" stroke-opacity=".25"/></g></g>
+      <rect x="330" y="64" width="290" height="162" fill="url(#scan)"/>
+      <g id="prin"></g>
+      <rect x="120" y="360" width="720" height="30" fill="#5d4a33"/><rect x="130" y="390" width="700" height="150" fill="#3a2f22"/>
+      <rect x="560" y="330" width="190" height="32" rx="4" fill="#1d2724"/><g fill="#d6e8aa"><rect class="vu" x="580" y="338" width="6" height="18"/><rect class="vu" x="592" y="338" width="6" height="18" style="animation-delay:-.2s"/><rect class="vu" x="604" y="338" width="6" height="18" style="animation-delay:-.1s"/></g><circle class="onair" cx="720" cy="346" r="6" fill="#c4382b"/>
+      <path d="M650 330 C650 290 610 280 600 260" stroke="#0e1412" stroke-width="5" fill="none"/><ellipse cx="598" cy="256" rx="8" ry="13" fill="#0e1412"/>
+      <rect x="170" y="340" width="60" height="22" rx="3" fill="#0e1412"/>
+    </svg>
+    <div class="gap" id="gap" aria-hidden="true">
+      <svg viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="gCor" x1="0" x2="1"><stop offset="0" stop-color="#9fb08f"/><stop offset=".5" stop-color="#e4efc9"/><stop offset="1" stop-color="#8ea07f"/></linearGradient>
+          <filter id="gBlur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>
+          <clipPath id="slit"><rect x="452" y="0" width="56" height="540"/></clipPath>
+        </defs>
+        <rect width="960" height="540" fill="#020404"/>
+        <g clip-path="url(#slit)">
+          <rect x="440" width="80" height="540" fill="url(#gCor)"/>
+          <g filter="url(#gBlur)" fill="#101514"><circle cx="488" cy="262" r="32"/><path d="M432 540 C432 392 452 340 488 330 C524 340 544 392 544 540Z"/></g>
+        </g>
+      </svg>
+    </div>
+    <div class="vig"></div>
+    <div class="grain"></div>
+    <div class="phone" id="phone" aria-hidden="true"><div class="ph-s"><span>09:42</span><span>41%</span></div><div class="ph-h" id="phh">Na<small id="phs"></small></div><div class="ph-m" id="phm"></div><div class="ph-n" id="phn"></div><div class="ph-i">Nhập tin nhắn</div></div>
+    <div class="bars"></div>
+    <div class="flash" id="flash"></div>
+    <div class="cap" id="cap" aria-hidden="true"></div>
+    <div class="blackout" id="blackout"></div>
+    <div class="toast" id="toast" aria-hidden="true"></div>
+    <div class="tbc" id="tbc"><b>TO BE CONTINUED</b><small>Còn tiếp…</small></div>
+  </section>
+
+  <section class="tray" id="tray">
+    <div class="box" id="titleBox">
+      <p class="eyebrow">Trò chơi nhập vai · Lớp 8A2 · Tiết ba</p>
+      <h1>Tiếng Gõ Cửa</h1>
+      <p class="lede">Bạn là Dạt, học sinh một trường THCS. Một tiết Toán bình thường đang bị cắt ngang. Bạn chọn từng bước, và đến cuối chỉ còn một quyết định.</p>
+      <p class="note">Nội dung: tiếng nổ lớn và không khí căng thẳng ở trường học. Không có hình ảnh máu hoặc bạo lực. Thời lượng khoảng 15 phút, có 4 hướng kết thúc. Nên đeo tai nghe.</p>
+      <div class="row">
+        <button class="btn" id="startSound" type="button">Bắt đầu, có âm thanh</button>
+        <button class="btn ghost" id="startQuiet" type="button">Bắt đầu, không âm thanh</button>
+      </div>
+    </div>
+
+    <div id="dlg" hidden style="display:flex;flex-direction:column;gap:12px;flex:1">
+      <div class="who" id="who"></div>
+      <div class="txt" id="txt"></div>
+      
+      <div class="act" id="act"></div>
+    </div>
+
+    <div class="box" id="endBox" hidden>
+      <p class="eyebrow">Kết thúc</p>
+      <h2 id="endH"></h2>
+      <p class="lede" id="endP"></p>
+      <ul class="recap" id="recap"></ul>
+      <div class="row"><button class="btn" id="again" type="button">Chơi lại</button></div>
+    </div>
+  </section>
+  <div class="sr" id="sr" aria-live="polite"></div>
+</main>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const stage=$('#stage');
+const els={who:$('#who'),txt:$('#txt'),act:$('#act'),chat:$('#phm'),dlg:$('#dlg'),tray:$('#tray'),
+  titleBox:$('#titleBox'),endBox:$('#endBox'),cap:$('#cap'),flash:$('#flash'),label:$('#sceneLabel'),
+  mCalm:$('#mCalm'),mNoise:$('#mNoise'),sr:$('#sr'),gap:$('#gap'),black:$('#blackout'),mute:$('#mute')};
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CANCEL={};
+let fxOn=!reduce,trip=false,told=false,looped=false,naQuiet=false,clues=[],seen=new Set(),run=0,calm=70,noise=0,log=[],skip=null,pending=null,keyMap=null,knockT=0,capT=0;
+
+window.addEventListener('unhandledrejection',e=>{if(e.reason===CANCEL)e.preventDefault();});
+
+/* ---------- sound ---------- */
+const Snd=(()=>{
+  let ctx=null,out=null,rev=null,nb=null,amb=null,hbT=0,muted=false,lastAmb=0,vol=.7,voiceOn=true,fanN=null,droneN=null,rainN=null;
+  const ok=()=>ctx&&!muted;
+  function init(){
+    if(ctx){ctx.resume&&ctx.resume();return;}
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    ctx=new AC();
+    const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-16; comp.ratio.value=6;
+    out=ctx.createGain(); out.gain.value=muted?0:vol*1.2; out.connect(comp); comp.connect(ctx.destination);
+    nb=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+    const d=nb.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const len=Math.floor(ctx.sampleRate*2.4), ir=ctx.createBuffer(2,len,ctx.sampleRate);
+    for(let c=0;c<2;c++){const ch=ir.getChannelData(c);for(let i=0;i<len;i++)ch[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2);}
+    rev=ctx.createConvolver(); rev.buffer=ir;
+    const wet=ctx.createGain(); wet.gain.value=.6; rev.connect(wet); wet.connect(out);
+    try{if(window.speechSynthesis){speechSynthesis.getVoices();const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}}catch(e){}
+  }
+  function noiseBurst(dur,o={}){
+    const f=o.f||800,type=o.type||'lowpass',g=o.g||.4,at=o.at||.002,when=o.when||0,sweep=o.sweep||1;
+    const t=ctx.currentTime+when,s=ctx.createBufferSource(); s.buffer=nb; s.loop=true;
+    const fl=ctx.createBiquadFilter(); fl.type=type; fl.Q.value=o.q||1; fl.frequency.setValueAtTime(f,t);
+    if(sweep!==1)fl.frequency.exponentialRampToValueAtTime(Math.max(40,f*sweep),t+dur);
+    const ga=ctx.createGain(); ga.gain.setValueAtTime(.0001,t);
+    ga.gain.exponentialRampToValueAtTime(g,t+at); ga.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    s.connect(fl); fl.connect(ga); ga.connect(out);
+    if(o.rev){const sg=ctx.createGain(); sg.gain.value=o.rev; ga.connect(sg); sg.connect(rev);}
+    s.start(t); s.stop(t+dur+.05);
+  }
+  function tone(freq,dur,o={}){
+    const t=ctx.currentTime+(o.when||0),os=ctx.createOscillator(); os.type=o.type||'sine';
+    os.frequency.setValueAtTime(freq,t); if(o.to)os.frequency.exponentialRampToValueAtTime(o.to,t+dur);
+    const ga=ctx.createGain(); ga.gain.setValueAtTime(.0001,t);
+    ga.gain.exponentialRampToValueAtTime(o.g||.2,t+(o.at||.004)); ga.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    os.connect(ga); ga.connect(out);
+    if(o.rev){const sg=ctx.createGain(); sg.gain.value=o.rev; ga.connect(sg); sg.connect(rev);}
+    os.start(t); os.stop(t+dur+.05);
+  }
+  return{
+    init,
+    muted:()=>muted,
+    setMuted(m){muted=m; if(!m&&!ctx)init(); if(out)out.gain.setTargetAtTime(m?0:vol*1.2,ctx.currentTime,.05);
+      if(m){try{speechSynthesis.cancel();}catch(e){}} else if(lastAmb)this.ambient(lastAmb);},
+    bang(n){ if(!ok())return; const far=n===1;
+      noiseBurst(far?1:.75,{f:far?1500:4200,sweep:.12,g:far?.5:.85,rev:far?.9:.7});
+      tone(far?70:96,.5,{to:38,g:far?.45:.65,rev:.3});
+      if(!far)noiseBurst(.07,{type:'highpass',f:2600,g:.45});
+      noiseBurst(.7,{f:far?900:1800,sweep:.2,g:far?.1:.16,when:.38,rev:.8});
+    },
+    chime(){ if(!ok())return; noiseBurst(.03,{type:'highpass',f:3000,g:.08});
+      tone(659,.9,{g:.16,when:.05}); tone(523,1.2,{g:.16,when:.5}); noiseBurst(2.6,{type:'bandpass',f:2200,q:.7,g:.02,when:.9}); },
+    say(who,text,kind){ if(muted||!voiceOn||!('speechSynthesis' in window))return;
+      const VP={'Cô Hạnh':[1.2,.95],'Dạt':[.9,1],'Minh':[.7,1.05],'Lan':[1.45,1.05],'Loa phát thanh':[.6,.85],'Giọng ngoài cửa':[1.7,.95],'Na':[1.7,1],'Thầy Tùng':[.62,.95],'Thầy Quân':[.55,.9]};
+      try{const vs=speechSynthesis.getVoices().filter(x=>/^vi/i.test(x.lang)),p=VP[who]; if(!vs.length||!p)return;
+        const w=/whisper/.test(kind||''),u=new SpeechSynthesisUtterance(text.replace(/[“”"*]/g,'').replace(/…|\.\.\./g,', '));
+        u.voice=vs[Object.keys(VP).indexOf(who)%vs.length]; u.lang=u.voice.lang; u.pitch=p[0]; u.rate=p[1]*(w?.9:1); u.volume=Math.min(1,vol*(w?.6:1)+.15);
+        speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} },
+    rain(on){ if(!ctx)return; if(!rainN){const s=ctx.createBufferSource(); s.buffer=nb; s.loop=true; const f=ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=1800; const g=ctx.createGain(); g.gain.value=0; s.connect(f); f.connect(g); g.connect(out); s.start(); rainN=g;} rainN.gain.setTargetAtTime(on?.025:0,ctx.currentTime,.8); },
+    boom(){ if(!ok())return; noiseBurst(1.8,{f:2400,sweep:.05,g:.9,rev:1}); tone(62,1.4,{to:26,g:.8,rev:.4}); noiseBurst(.12,{type:'highpass',f:3000,g:.6}); noiseBurst(1.2,{f:700,sweep:.2,g:.25,when:.5,rev:1}); },
+    drip(){ if(!ok())return; tone(1400,.08,{to:700,g:.1,rev:.8}); },
+    mic(){ if(!ok())return; noiseBurst(.05,{f:600,g:.3}); tone(120,.5,{g:.05,type:'sawtooth'}); },
+    hush(){ try{window.speechSynthesis&&speechSynthesis.cancel();}catch(e){} },
+    voice:()=>voiceOn, setVoice(v){voiceOn=v;},
+    setVol(v){ vol=v; if(out)out.gain.setTargetAtTime(muted?0:vol*1.2,ctx.currentTime,.05); },
+    notify(){ if(!ok())return; tone(1175,.12,{g:.12}); tone(1568,.22,{g:.1,when:.12}); },
+    chalk(){ if(!ok())return; for(let i=0;i<4;i++)noiseBurst(.09,{type:'highpass',f:3500,g:.09,when:i*.12}); },
+    step(n,far){ if(!ok())return; for(let i=0;i<n;i++){noiseBurst(.08,{f:far?220:400,g:far?.12:.3,when:i*.55,rev:far?.8:.3}); tone(70,.1,{g:far?.08:.2,when:i*.55});} },
+    chair(){ if(!ok())return; noiseBurst(.35,{type:'bandpass',f:900,q:1.2,g:.25,sweep:.5}); },
+    stat(d){ if(!ok())return; noiseBurst(d||.6,{type:'bandpass',f:2400,q:.5,g:.16,at:.01,sweep:.5}); },
+    flick(){ if(!ok())return; for(let i=0;i<4;i++){tone(100,.05,{type:'sawtooth',g:.07,when:i*.09}); noiseBurst(.03,{type:'highpass',f:4000,g:.08,when:i*.09});} },
+    sting(){ if(!ok())return; tone(311,.9,{type:'sawtooth',g:.08,to:296}); tone(329,.9,{type:'sawtooth',g:.08,to:310}); noiseBurst(.5,{f:3000,g:.2,sweep:.2,rev:.5}); tone(55,.7,{g:.3}); },
+    rattle(){ if(!ok())return; for(let i=0;i<6;i++){noiseBurst(.04,{type:'highpass',f:2000,g:.25,when:i*.07}); tone(900,.03,{type:'triangle',g:.08,when:i*.07});} },
+    fan(on){ if(!ctx)return;
+      if(!fanN){const s=ctx.createBufferSource(); s.buffer=nb; s.loop=true; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=180; f.Q.value=.7;
+        const g=ctx.createGain(); g.gain.value=0; const l=ctx.createOscillator(); l.frequency.value=3.2; const lg=ctx.createGain(); lg.gain.value=.012;
+        l.connect(lg); lg.connect(g.gain); s.connect(f); f.connect(g); g.connect(out); s.start(); l.start(); fanN=g;}
+      fanN.gain.setTargetAtTime(on?.05:0,ctx.currentTime,.5); },
+    drone(on){ if(!ctx)return;
+      if(!droneN){const g=ctx.createGain(); g.gain.value=0; [49,51.5].forEach(f=>{const o=ctx.createOscillator(); o.frequency.value=f; o.connect(g); o.start();}); g.connect(out); droneN=g;}
+      droneN.gain.setTargetAtTime(on?.07:0,ctx.currentTime,1.2); },
+    buzz(){ if(!ok())return; for(let i=0;i<3;i++){tone(130,.17,{type:'triangle',g:.12,when:i*.26}); tone(260,.17,{type:'square',g:.03,when:i*.26}); noiseBurst(.16,{f:500,g:.05,when:i*.26});} },
+    pop(){ if(!ok())return; tone(880,.09,{g:.07}); tone(1320,.11,{g:.05,when:.05}); },
+    knock(n,sp){ if(!ok())return; for(let i=0;i<n;i++){noiseBurst(.1,{f:420,g:.7,when:i*(sp||.34),rev:.5}); tone(170,.11,{to:80,g:.55,when:i*(sp||.34),rev:.3});} },
+    lock(){ if(!ok())return; noiseBurst(.03,{type:'highpass',f:2500,g:.45}); tone(1300,.05,{type:'triangle',g:.12,when:.03}); noiseBurst(.06,{f:700,g:.28,when:.1}); },
+    swoosh(){ if(!ok())return; noiseBurst(.8,{type:'bandpass',f:500,q:.6,g:.13,sweep:3,at:.15}); },
+    desk(quiet){ if(!ok())return; if(quiet){noiseBurst(.3,{f:300,g:.22}); tone(110,.12,{to:70,g:.2,when:.25});}
+      else{noiseBurst(.95,{type:'bandpass',f:1100,q:.8,g:.45,at:.05,sweep:.6}); tone(90,.2,{to:55,g:.35,when:.9});} },
+    ambient(level){ lastAmb=level; if(!ctx)return;
+      if(!amb){const s=ctx.createBufferSource(); s.buffer=nb; s.loop=true; const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=420;
+        const g=ctx.createGain(); g.gain.value=0; const lfo=ctx.createOscillator(); lfo.frequency.value=.9; const lg=ctx.createGain(); lg.gain.value=.01;
+        lfo.connect(lg); lg.connect(g.gain); s.connect(f); f.connect(g); g.connect(out); s.start(); lfo.start(); amb={g};}
+      amb.g.gain.setTargetAtTime(level,ctx.currentTime,.8); },
+    hb(bpm){ clearInterval(hbT); hbT=0; if(!bpm)return;
+      hbT=setInterval(()=>{ if(!ok())return; tone(58,.14,{to:42,g:.32}); tone(52,.12,{g:.22,when:.17}); },60000/bpm); },
+    silence(){ this.ambient(0); lastAmb=0; this.hb(0); this.fan(false); this.drone(false); this.rain(false); this.hush(); }
+  };
+})();
+
+/* ---------- room drawing ---------- */
+const SKINS=['#b98c69','#c59b78','#a97d5a','#b58562'];
+function stu(x,y,s,o){
+  o=o||{}; const hair='#0c0f10', shirt=o.shirt||'#c6cfc8';
+  const glasses=o.glasses?'<g class="glasses"><circle cx="-17" cy="-48" r="5" fill="none" stroke="#e9ede0" stroke-width="1.6"/><path d="M-13 -48 h8" stroke="#e9ede0" stroke-width="1.4"/></g>':'';
+  const scarf=o.scarf?'<path d="M-10 -37 L10 -37 L0 -14Z" fill="#c4382b"/>':'';
+  const arm=o.arm?'<path class="arm" d="M20 -30 L44 -92" stroke="'+shirt+'" stroke-width="10" stroke-linecap="round" fill="none"/>':'';
+  return '<g transform="translate('+x+' '+y+') scale('+s+')"><g class="stu '+(o.cls||'')+'" style="--d:'+(o.d||0)+'ms">'+arm+
+    '<path d="M-27 0 C-27 -30 -14 -36 0 -36 C14 -36 27 -30 27 0Z" fill="'+shirt+'"/>'+
+    '<g class="head"><circle cx="0" cy="-50" r="15" fill="'+(o.skin||SKINS[0])+'"/>'+
+    '<path d="M-15.5 -48 a15.5 15.5 0 1 1 31 0 q0 6 -4 8 q-11 4 -23 0 q-4 -2 -4 -8z" fill="'+hair+'"/>'+glasses+'</g>'+scarf+'</g></g>';
+}
+function buildRow(y,s,sp,starts,special){
+  let desks='',people='',n=0;
+  starts.forEach(a=>{
+    const cx=a+sp/2,w=sp+68;
+    desks+='<g transform="translate('+cx+' '+y+') scale('+s+')"><rect x="'+(-w/2)+'" y="-98" width="'+w+'" height="12" rx="2" fill="#6d5a40"/><rect x="'+(-w/2)+'" y="-86" width="'+w+'" height="6" fill="#3a2f22"/></g>';
+    [a,a+sp].forEach(x=>{
+      n++; const sp2=special&&special[x];
+      if(!sp2&&n%5===3)return;
+      people+=stu(x,y,s,Object.assign({skin:SKINS[n%4],shirt:n%3?'#c6cfc8':'#b3bdb6',d:(n*37)%170},sp2||{}));
+    });
+  });
+  return desks+people;
+}
+function buildRoom(){
+  $('#hdoors').innerHTML=[['7A1',70],['8A1',400],['8A2',770]].map(a=>door(a[0],a[1])).join('');
+  $('#prin').innerHTML=stu(395,420,1.6,{shirt:'#4b5560',skin:SKINS[1]})+'<path d="M388 362 L402 362 L395 398Z" fill="#7a1f1a"/>';
+  $('#orain').innerHTML=rl(40,190,70);$('#wrain').innerHTML=rl(780,120,50);
+  $('#teacher').innerHTML=stu(300,394,1.3,{shirt:'#5f7088',skin:SKINS[1],arm:true,cls:'teacher'})+'<g class="dust"><circle cx="357" cy="276" r="1.8"/><circle cx="352" cy="278" r="1.4"/><circle cx="361" cy="274" r="1.6"/></g>';
+  $('#rowFar').innerHTML=buildRow(336,.62,58,[96,286,476,650]);
+  $('#rowMid').innerHTML=buildRow(414,.85,70,[60,250,440,630],{440:{cls:'hl hA'},510:{cls:'hl hB'},250:{cls:'hl hC'}});
+  $('#rowNear').innerHTML=buildRow(532,1.35,110,[70,300,530,760],{
+    180:{scarf:true,cls:'dat',skin:SKINS[0],shirt:'#d3dbd4'},
+    300:{glasses:true,cls:'friend',skin:SKINS[2],shirt:'#c6cfc8'}
+  });
+}
+
+/* ---------- ui helpers ---------- */
+const clamp=v=>Math.max(0,Math.min(100,v));
+function meters(dc,dn){calm=clamp(calm+(dc||0));noise=clamp(noise+(dn||0));els.mCalm.style.width=calm+'%';els.mNoise.style.width=noise+'%';}
+setInterval(()=>{if(noise>0){noise--;els.mNoise.style.width=noise+'%';}},1500);
+const S=(k,v)=>{stage.dataset[k]=v;};
+function tok(){const t=run;return v=>{if(t!==run)throw CANCEL;return v;};}
+function sleep(ms){const c=tok();return new Promise(r=>setTimeout(r,ms)).then(c);}
+function setLabel(n,t){els.label.textContent=n+' · '+t;}
+function rec(s,t){log.push([s,t]);}
+function cap(t){els.cap.textContent=t;els.cap.classList.remove('on');void els.cap.offsetWidth;els.cap.classList.add('on');clearTimeout(capT);capT=setTimeout(()=>els.cap.classList.remove('on'),1400);}
+function flash(){if(!fxOn)return;els.flash.classList.remove('on');void els.flash.offsetWidth;els.flash.classList.add('on');}
+function shake(){if(!fxOn)return;stage.classList.add('shake');setTimeout(()=>stage.classList.remove('shake'),480);}
+function flinch(){stage.classList.add('flinch');setTimeout(()=>stage.classList.remove('flinch'),900);}
+function gap(on){els.gap.classList.toggle('on',on);}
+function chatShow(on){S('view',on?'phone':'');if(on)buzzPh();}
+function chatReset(){els.chat.replaceChildren();$('#phn').classList.remove('on');}
+function thread(n,t){$('#phh').firstChild.textContent=n;$('#phs').textContent=t;els.chat.replaceChildren();}
+function buzzPh(){if(!fxOn)return;const p=$('#phone');p.classList.remove('buzz');void p.offsetWidth;p.classList.add('buzz');}
+function notif(t){const n=$('#phn');n.textContent=t;n.classList.add('on');setTimeout(()=>n.classList.remove('on'),1800);}
+function bubble(side,text){const b=document.createElement('div');b.className='b '+side;if(text!=null)b.textContent=text;els.chat.append(b);els.chat.scrollTop=els.chat.scrollHeight;return b;}
+async function incoming(text){
+  const t=bubble('in typing');t.innerHTML='<i></i><i></i><i></i>';
+  await sleep(900+Math.min(text.length*16,800));
+  t.className='b in';t.textContent=text;Snd.notify();buzzPh();notif(text.slice(0,34));els.chat.scrollTop=els.chat.scrollHeight;
+}
+function outgoing(text){bubble('out',text);Snd.pop();}
+function cutDo(k,v,cut){const all=document.querySelectorAll('svg.scene,.scene2');if(cut&&fxOn){all.forEach(e=>e.classList.add('cut'));S(k,v);void stage.offsetWidth;all.forEach(e=>e.classList.remove('cut'));}else S(k,v);}
+function cam(v,cut){cutDo('view',v,cut);}
+function loc(n,cut){cutDo('loc',n,cut);}
+async function blink(){Snd.flick();if(!fxOn)return;const p=stage.dataset.light;for(const l of ['dark','normal','dark',p]){S('light',l);await sleep(80);}}
+function shadow(){Snd.step(2,true);if(!fxOn)return;const e=$('.sil');e.classList.remove('go');void e.getBoundingClientRect();e.classList.add('go');}
+function rattle(){Snd.rattle();if(!fxOn)return;stage.classList.add('rat');setTimeout(()=>stage.classList.remove('rat'),600);}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),3400);}
+function clue(t){if(clues.includes(t))return;clues.push(t);const l=$('#clueList');if(clues.length===1)l.replaceChildren();const li=document.createElement('li');li.textContent=t;l.append(li);$('#clueBtn').textContent='Manh mối: '+clues.length;toast('Manh mối mới: '+t);}
+function door(n,x){return '<rect x="'+x+'" y="140" width="120" height="254" fill="#3d3225"/><rect x="'+(x+8)+'" y="148" width="104" height="246" fill="#6b563c"/><rect x="'+(x+30)+'" y="170" width="24" height="46" fill="#b9c8ae" opacity=".5"/><rect x="'+(x+22)+'" y="116" width="76" height="16" fill="#1d2724"/><text x="'+(x+60)+'" y="128" text-anchor="middle" font-family="Barlow Condensed,sans-serif" font-weight="700" font-size="13" letter-spacing="2" fill="#cfc9a8">'+n+'</text><rect x="'+(x+8)+'" y="388" width="104" height="5" fill="#e5f2c4" opacity=".4"/>'+(n==='8A2'?'<g class="hbolt"><rect x="'+(x+80)+'" y="260" width="22" height="7" rx="2" fill="#c8c0a8"/></g>':'');}
+function rl(x,w,y){let o='';for(let i=0;i<9;i++){const a=x+(i+.5)*w/9;o+='<line class="rain" x1="'+a+'" y1="'+y+'" x2="'+(a-3)+'" y2="'+(y+14)+'" style="animation-delay:-'+(i*.13)+'s"/>';}return o;}
+function typeInto(node,text){
+  const c=tok();
+  return new Promise(res=>{
+    if(reduce){node.textContent=text;return res();}
+    let i=0;node.textContent='';
+    const id=setInterval(()=>{i+=2;node.textContent=text.slice(0,i);if(i>=text.length){clearInterval(id);skip=null;res();}},16);
+    skip=()=>{clearInterval(id);node.textContent=text;skip=null;res();};
+  }).then(c);
+}
+function show(who,text,kind){
+  pending=null;keyMap=null;
+  els.who.textContent=who||'';
+  els.txt.className='txt '+(kind||'');
+  els.act.className='act';els.act.replaceChildren();
+  els.sr.textContent=(who?who+': ':'')+text;
+  if(/say/.test(kind||''))Snd.say(who,text,kind);else Snd.hush();
+  return typeInto(els.txt,text);
+}
+function nextBtn(){
+  const c=tok();
+  return new Promise(res=>{
+    const b=document.createElement('button');b.type='button';b.className='next';b.textContent='Tiếp ▸';
+    const armed=performance.now()+250;
+    const go=()=>{if(performance.now()<armed)return;pending=null;res();};
+    b.onclick=go;pending=go;els.act.replaceChildren(b);b.focus({preventScroll:true});
+  }).then(c);
+}
+async function line(who,text,kind){await show(who,text,kind);await nextBtn();}
+function mkOpt(label,fn,n){
+  const b=document.createElement('button');b.type='button';b.className='opt';
+  if(n){const k=document.createElement('span');k.className='k';k.textContent=n;b.append(k);}
+  const s=document.createElement('span');s.textContent=label;b.append(s);b.onclick=fn;return b;
+}
+function choose(prompt,opts,cfg){
+  cfg=cfg||{};const c=tok();
+  return (prompt?show(cfg.who||'',prompt,'narr'):Promise.resolve()).then(()=>new Promise(res=>{
+    els.act.className='act'+(cfg.big?' big':'');
+    const pick=i=>{keyMap=null;els.act.className='act';els.act.replaceChildren();res(i);};
+    els.act.replaceChildren(...opts.map((o,i)=>mkOpt(o,()=>pick(i),cfg.big?'':String(i+1))));
+    keyMap=pick;
+  })).then(c);
+}
+els.tray.addEventListener('click',e=>{if(e.target.closest('button'))return;if(skip)skip();else if(pending)pending();});
+document.addEventListener('keydown',e=>{
+  if((e.key===' '||e.key==='Enter')&&!e.target.closest('button')){
+    if(skip){e.preventDefault();skip();}else if(pending){e.preventDefault();pending();}
+  }
+  if(keyMap&&/^[1-9]$/.test(e.key)){const i=+e.key-1;if(els.act.children[i]){keyMap(i);}}
+});
+
+/* ---------- scene logic ---------- */
+function resetStage(){
+  const d={curtain:'open',light:'normal',phone:'off',pa:'off',teacher:'go',friend:'',outside:'0',view:'',lock:'0',block:'0',loc:'',hb:'0',hc:'0',fear:'0',walk:'0',ph:'0',mic:'0',wcfoot:'0'};
+  Object.keys(d).forEach(k=>S(k,d[k]));
+  document.querySelectorAll('.hot').forEach(h=>{h.classList.remove('on');h.onclick=null;});
+  els.black.classList.remove('on');gap(false);clearInterval(knockT);Snd.silence();
+  els.cap.classList.remove('on');$('#tbc').classList.remove('on');
+}
+function lockdown(){
+  const c=tok();
+  return new Promise(res=>{
+    let busy=false;const done={};const hc=$('#hotCurtain');
+    const T={
+      curtain:{label:'Kéo rèm cửa sổ cùng Lan',run:async()=>{
+        cam('');S('hc','1');await sleep(2200);cam('window');S('curtain','closed');S('light','dim');Snd.swoosh();meters(0,2);await sleep(1400);
+        await line('Lan','“Xong rồi. Nhẹ thôi, đừng để rèm đập vào kính.”','say whisper');
+        S('hc','0');cam('');}},
+      block:{label:'Phụ cô kê bàn chặn cửa',run:async()=>{
+        const k=await choose('Bàn ghế nặng hơn Dạt tưởng. Cô Hạnh ra hiệu cho hai bạn nam.',['Nhấc bàn lên, đặt xuống thật khẽ','Kéo lê cho nhanh']);
+        rec('Chặn cửa',k===0?'Nhấc bàn, đặt khẽ':'Kéo lê bàn');
+        cam('');S('hb','1');await sleep(2400);cam('door');
+        if(k===0){Snd.desk(true);meters(2,5);}else{Snd.desk(false);meters(-6,20);shake();}
+        S('block','1');await sleep(2400);
+        await line('',k===0?'Hai bạn nam nhấc bàn, bước từng bước ngắn. Không một chân ghế nào chạm sàn.':'Chân bàn rít dài trên nền gạch. Cả lớp cứng người, mắt dán vào cánh cửa.','narr');
+        S('hb','0');cam('');}},
+      calm:{label:'Nắm tay Lan, trấn an bạn ấy',run:async()=>{
+        meters(6,-3);cam('dat');
+        await line('Dạt','“Có cô ở đây rồi. Tụi mình cứ ngồi yên, không sao đâu.”','say whisper');
+        await line('Lan','“Tay tớ lạnh quá… Cảm ơn cậu.”','say whisper');cam('');}}
+    };
+    const render=async()=>{
+      hc.classList.toggle('on',!done.curtain);
+      const left=Object.keys(T).filter(k=>!done[k]);
+      if(!left.length){res();return;}
+      await show('Cô Hạnh',left.length===3?'“Ba việc, các em làm thật khẽ nhé.” Chạm vào điểm sáng hoặc chọn bên dưới.':'Còn '+left.length+' việc.','narr');
+      els.act.className='act';
+      els.act.replaceChildren(...left.map(k=>mkOpt(T[k].label,()=>go(k))));
+    };
+    const go=async k=>{
+      if(busy||done[k])return;busy=true;hc.classList.remove('on');els.act.replaceChildren();
+      await T[k].run();done[k]=true;busy=false;render();
+    };
+    hc.onclick=()=>go('curtain');
+    render();
+  }).then(c);
+}
+function holdBreath(){
+  const t0=run,c=tok();
+  return show('','Giữ im lặng. Nhấn giữ nút bên dưới để nín thở.','narr').then(()=>new Promise(res=>{
+    const total=calm>=70?2800:calm<40?5000:3500;let prog=0,held=false;
+    const hold=document.createElement('button');hold.type='button';hold.className='hold';
+    hold.innerHTML='<span class="fill"></span><span class="lbl">Nhấn giữ để nín thở</span>';
+    const fill=hold.querySelector('.fill');
+    const skipB=document.createElement('button');skipB.type='button';skipB.className='link';skipB.textContent='Bỏ qua đoạn chờ';
+    const press=()=>{held=true;};
+    const release=()=>{if(held&&prog>600&&prog<total)meters(-2,5);held=false;};
+    hold.addEventListener('pointerdown',e=>{e.preventDefault();press();});
+    ['pointerup','pointercancel','pointerleave'].forEach(n=>hold.addEventListener(n,release));
+    hold.addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();press();}});
+    hold.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter')release();});
+    const id=setInterval(()=>{
+      if(t0!==run){clearInterval(id);return;}
+      if(held)prog=Math.min(total,prog+50);else if(prog>0)prog=Math.max(0,prog-80);
+      fill.style.width=(prog/total*100)+'%';
+      if(prog>=total){clearInterval(id);res();}
+    },50);
+    skipB.onclick=()=>{clearInterval(id);res();};
+    els.act.replaceChildren(hold,skipB);
+  })).then(c);
+}
+
+async function story(){
+  log=[];calm=70;noise=0;trip=false;told=false;looped=false;naQuiet=false;clues=[];
+  $('#clueBtn').textContent='Manh mối: 0';$('#clueList').replaceChildren(Object.assign(document.createElement('li'),{textContent:'Chưa có manh mối nào.'}));
+  meters(0,0);resetStage();chatReset();chatShow(false);
+  els.titleBox.hidden=true;els.endBox.hidden=true;els.dlg.hidden=false;
+  let c;const H='Cô Hạnh',Q='Thầy Quân';
+
+  /* Cảnh 1 */
+  setLabel('Cảnh 1 / 14','Một tiết học bình thường');
+  Snd.ambient(.05);Snd.fan(true);Snd.rain(true);cam('board');
+  await sleep(800);Snd.chalk();
+  await line(H,'“Các em nhìn lên bảng nào. Tam giác vuông này có hai cạnh góc vuông là ba và bốn, vậy cạnh huyền bằng bao nhiêu? Ngoài trời mưa nhưng trong lớp vẫn phải tập trung nhé.”','say');
+  cam('teacher');Snd.chalk();
+  await line(H,'“Chuyến tham quan của khối sáu hôm nay bị hoãn vì mưa, nên dãy B vẫn đông các em nhỏ. Lớp tám nhớ giữ trật tự, đừng làm ồn.”','say');
+  cam('');S('phone','on');Snd.buzz();
+  await line('','Dưới ngăn bàn, điện thoại của Dạt rung lên. Cậu cúi thấp xuống.','narr');
+  c=await choose('Dạt làm gì?',['Liếc xem tin nhắn.','Cất điện thoại, chép bài.']);
+  rec('Tiết học',c===0?'Đọc tin nhắn của Na':'Cất điện thoại');
+  if(c===0){trip=true;thread('Na 🐰','đang hoạt động');chatShow(true);
+    await incoming('Anh ơi chuyến đi hoãn rồi, em ở trường nha 🐰 Pin em còn 3% à. Chiều anh nhớ đón em nha!');
+    clue('Na nhắn sáng nay: chuyến đi hoãn, em ở trường, pin còn 3%. Na hay kết câu bằng “nha 🐰”.');
+    await sleep(900);chatShow(false);meters(-3,0);}
+  else{S('phone','off');meters(3,0);}
+  cam('teacher');
+  await line(H,'“Dạt, cô thấy ánh sáng xanh hắt lên mặt em từ nãy rồi đấy. Cất điện thoại đi, rồi nhắc lại cho cô: cạnh huyền là cạnh nào?”','say');
+  await line('Dạt','“Dạ… là cạnh đối diện với góc vuông ạ.”','say');
+  await line(H,'“Đúng rồi. Ngồi xuống, tập trung giúp cô.”','say');
+
+  /* Cảnh 2 */
+  setLabel('Cảnh 2 / 14','Ngoài hành lang');
+  cam('');await sleep(1200);loc('hall',true);Snd.ambient(.02);Snd.step(5,true);
+  await line('','Cùng lúc đó, ngoài hành lang dãy A. Đèn tuýp chập chờn, mưa gõ đều lên cửa kính. Không một bóng học sinh.','narr');
+  S('walk','1');Snd.flick();await sleep(3200);
+  await line('','Ở đầu hành lang, một bóng người đi chậm rãi, tay cầm thứ gì đó phát sáng mờ.','narr');
+  loc('',true);
+
+  /* Cảnh 3 */
+  setLabel('Cảnh 3 / 14','Tiếng nổ đầu tiên');
+  await sleep(1800);
+  Snd.bang(1);cap('ĐÙNG!');flash();shake();flinch();S('teacher','freeze');Snd.ambient(.035);meters(-8,0);
+  await blink();cam('teacher',true);
+  await line('','Cây phấn dừng giữa bảng. Cô Hạnh quay lại, gương mặt lặng đi trong một giây.','narr');
+  await line(H,'“Các em ngồi yên tại chỗ. Cô cần một chút im lặng.”','say');
+  await line('Minh','“Giống tiếng nổ lốp xe, mà to hơn nhiều.”','say whisper');
+  cam('dat',true);
+  await line('Dạt (nghĩ)','Nếu chỉ là pháo thì sao cả lớp im thế này?','think');
+  c=await choose('Dạt ngẩng lên.',['Nhìn ra cửa sổ.','Nhìn cô Hạnh, chờ cô nói tiếp.']);
+  rec('Tiếng nổ đầu tiên',c===0?'Nhìn ra cửa sổ':'Nhìn cô Hạnh');
+  if(c===0){cam('window');await sleep(900);shadow();await sleep(450);Snd.sting();flash();meters(-6,6);
+    await line('','Một bóng người lướt ngang ô cửa sổ, nhanh đến mức Dạt không chắc mình đã thật sự nhìn thấy.','narr');}
+  else{meters(2,0);await line('','Cô Hạnh đứng thẳng lên, hai tay đặt trên bục giảng, giọng chậm lại như đang kể chuyện.','narr');}
+  cam('');
+
+  /* Cảnh 4 */
+  setLabel('Cảnh 4 / 14','Phòng hiệu trưởng');
+  await sleep(1800);Snd.bang(2);cap('ĐÙNG!');flash();shake();flinch();meters(-12,6);Snd.hb(78);Snd.ambient(.025);
+  await line('','Tiếng nổ thứ hai. Khô hơn, gần hơn. Một bạn nữ đưa tay bịt miệng để khỏi bật ra tiếng.','narr');
+  loc('office',true);cam('screens');
+  await line('','Phòng hiệu trưởng. Bốn màn hình camera, và một màn hình bỗng nhiễu hạt trắng.','narr');
+  cam('face');
+  await line(Q,'“Tùng, thầy nghe hai tiếng nổ. Em xem lại camera dãy A giúp thầy, rồi báo ngay cho các đơn vị có trách nhiệm.”','say whisper');
+  await line(Q,'“Thầy sẽ thông báo toàn trường theo đúng quy định của nhà trường. Tất cả phải thật bình tĩnh.”','say whisper');
+  S('mic','1');Snd.mic();Snd.stat(.8);await sleep(1200);
+  loc('',true);cam('');S('mic','0');S('pa','on');Snd.chime();await sleep(1200);
+  await line('Loa phát thanh','“Mời thầy Mẫn lên văn phòng. Mời thầy Mẫn lên văn phòng.”','say');
+  Snd.stat(.7);S('pa','off');
+
+  /* Cảnh 5 */
+  setLabel('Cảnh 5 / 14','Làm theo quy định');
+  await line('Minh','“Trường mình có thầy Mẫn thật không nhỉ…”','say whisper');
+  cam('teacher');
+  await line(H,'“Cô hiểu thông báo đó. Cô làm theo quy định của nhà trường: cả lớp ở yên trong phòng, không ai ra ngoài, không ai mở cửa cho đến khi có thông báo chính thức.”','say whisper');
+  cam('');S('teacher','door');S('fear','1');Snd.hb(92);
+  await sleep(2700);cam('door');S('lock','1');Snd.lock();
+  await line('','Cô Hạnh đi nhanh ra cửa, gạt chốt khóa. Tiếng “tách” rất nhỏ, nhưng trong im lặng nó nghe như tiếng búa.','narr');
+  cam('dat');
+  await line('Dạt','“Cô ơi… tay em run quá.”','say whisper');
+  await line(H,'“Run cũng được. Giờ cô cần các em phụ cô vài việc, thật khẽ nhé.”','say whisper');
+  cam('');
+  await lockdown();S('light','dim');Snd.drone(true);
+  await line(H,'“Cả lớp làm tốt lắm. Giờ ngồi yên, chỉ thì thầm khi thật cần.”','say whisper');
+
+  /* Cảnh 6 */
+  setLabel('Cảnh 6 / 14','Tin nhắn');
+  Snd.ambient(.018);await sleep(1400);S('phone','on');Snd.buzz();Snd.hb(100);
+  await line('','Điện thoại rung trong ngăn bàn dù đã tắt chuông. Số lạ. Dạt giật nó ra như giật một vật nóng.','narr');
+  thread('Na','số chưa lưu');chatShow(true);
+  await incoming('Anh Dạt ơi, em Na đây. Máy em hết pin nên em mượn máy bạn nhắn. Em đang trốn trong nhà vệ sinh dãy B, em sợ lắm ạ.');
+  clue('Số lạ nói “máy hết pin nên mượn máy bạn”, và kết câu bằng “ạ” chứ không phải “nha 🐰”.');
+  c=await choose('Ngón tay Dạt run khi gõ.',['“Em đang ở một mình à? Cho anh biết thêm đi.”','“Ở yên đó, đừng ra ngoài. Anh sẽ báo cô.”']);
+  outgoing(c===0?'Em đang ở một mình à? Cho anh biết thêm đi.':'Ở yên đó, đừng ra ngoài. Anh sẽ báo cô.');
+  rec('Tin nhắn',c===0?'Hỏi thêm về em':'Dặn em ở yên');if(c===1)meters(3,0);
+  await incoming(c===0?'Em ở một mình ạ. Anh ra mở cửa lớp cho em vào được không ạ?':'Dạ. Nhưng khi em đến, anh nhớ mở cửa cho em nhé ạ.');
+  c=await choose('Dạt nhìn về phía cánh cửa đã khóa.',['Nhổm dậy, định đi tìm em.','Ngồi yên, siết chặt điện thoại.']);
+  chatShow(false);rec('Muốn đi tìm em',c===0?'Đứng dậy, bị ngăn lại':'Ngồi yên');
+  if(c===0){meters(-6,6);Snd.chair();
+    await line('','Dạt nhổm khỏi ghế. Một bàn tay giữ tay áo cậu lại.','narr');
+    await line('Minh','“Ngồi xuống đi. Mở cửa bây giờ là nguy hiểm cho cả lớp, cả em cậu nữa.”','say whisper');}
+  else await line('Minh','“Tớ biết cậu lo. Nhưng cậu mà ra ngoài thì cô và cả lớp còn lo hơn.”','say whisper');
+  await line('Dạt','“Nhưng nó còn nhỏ…”','say whisper');
+
+  /* Cảnh 7: Na */
+  setLabel('Cảnh 7 / 14','Góc nhìn của Na');
+  S('phone','off');await sleep(500);loc('wc',true);Snd.hb(0);Snd.drip();
+  await line('','Cùng lúc đó, nhà vệ sinh cuối dãy B. Một giọt nước rơi từ vòi, rồi một giọt nữa. Trong buồng trong cùng, Na ngồi co chân lên nắp bồn cầu.','narr');
+  cam('na');
+  await line('Na','“Anh Dạt ơi… em muốn nhắn cho anh mà máy hết pin rồi.”','say whisper');
+  await line('','Màn hình điện thoại của Na đen kịt. Con thỏ bông treo trên cặp run run theo nhịp thở của em.','narr');
+  clue('Máy Na hết sạch pin. Vậy ai đang nhắn tin cho Dạt?');
+  S('fear','1');await sleep(1400);Snd.step(4,true);
+  await line('','Có tiếng bước chân ngoài hành lang. Chậm. Đều. Đang tiến lại gần nhà vệ sinh.','narr');
+  S('wcfoot','1');cam('foot');Snd.step(3,false);
+  c=await choose('Na làm gì?',['Nín thở, co chân lên, bịt miệng lại.','Cúi xuống nhìn qua khe cửa.']);
+  rec('Góc nhìn của Na',c===0?'Nín thở, co chân':'Nhìn qua khe cửa');
+  if(c===0){naQuiet=true;await line('','Na ôm chặt hai đầu gối. Bóng chân dừng lại trước buồng một nhịp rất dài, rồi đi tiếp.','narr');}
+  else{naQuiet=false;Snd.sting();flash();await line('','Một đôi giày đứng yên, mũi hướng thẳng vào buồng của em. Na vội ngả người ra sau, chiếc cặp khẽ cọ vào vách. Người ngoài kia có thể đã nghe thấy.','narr');}
+  S('wcfoot','0');cam('');loc('',true);cam('');
+
+  /* Cảnh 8 */
+  setLabel('Cảnh 8 / 14','Cô Hạnh hỏi');
+  Snd.hb(100);cam('teacher');
+  await line(H,'“Dạt, ai nhắn cho em vậy? Cô thấy em run từ nãy.”','say whisper');
+  c=await choose('Dạt nên làm gì với tin nhắn?',['Đưa điện thoại cho cô xem.','Giấu đi, nói là không có gì.']);
+  rec('Với cô Hạnh',c===0?'Đưa tin nhắn cho cô':'Giấu tin nhắn');
+  if(c===0){told=true;meters(5,-2);
+    await line(H,'“Cô không tịch thu đâu. Cô cần biết ai đang liên lạc với học sinh của mình. Số này chưa lưu. Em của em học lớp nào, hôm nay có ở trường không?”','say whisper');
+    if(!trip){await line('Dạt (nghĩ)','Sáng nay Na cũng có nhắn gì đó…','think');
+      await line('','Dạt kéo lên tin nhắn cũ: “Pin em còn 3% à… chiều anh nhớ đón em nha!” Tim cậu hẫng đi một nhịp. Na không bao giờ viết “ạ” như thế.','narr');trip=true;
+      clue('Na nhắn sáng nay: chuyến đi hoãn, em ở trường, pin còn 3%. Na hay kết câu bằng “nha 🐰”.');}
+    await line('Dạt','“Em ấy học lớp sáu, ở dãy B ạ. Nhưng máy em ấy chỉ còn 3% pin, và em ấy không viết như thế này…”','say whisper');
+    await line(H,'“Vậy rất có thể người nhắn không phải em con. Em giữ nguyên điện thoại, đừng trả lời nữa. Cô sẽ báo nhà trường theo cách chính thức khi có thể.”','say whisper');}
+  else{meters(-6,6);
+    await line('Minh','“Cậu giấu gì thế? Đưa cô xem đi.”','say whisper');
+    await line(H,'“Cô không ép em. Nhưng giấu một điều vào lúc này có thể nguy hiểm hơn nói ra.”','say whisper');}
+  cam('');
+
+  /* Cảnh 9 */
+  setLabel('Cảnh 9 / 14','Ngoài cửa lớp');
+  S('phone','off');Snd.hb(108);Snd.ambient(.012);
+  await sleep(700);loc('hall',true);Snd.step(8,true);
+  await line('','Ngoài hành lang, bóng người ấy đang đi dọc dãy cửa. Qua từng cánh cửa, bước chân chậm lại một nhịp rồi đi tiếp.','narr');
+  await sleep(5200);cam('door');Snd.step(2,false);
+  await line('','Bóng người dừng trước cửa 8A2. Một đốm sáng nhỏ trong tay người ấy nhấp nháy.','narr');
+  cam('');loc('',true);
+
+  /* Cảnh 10 */
+  setLabel('Cảnh 10 / 14','Im lặng');
+  await line('','Trong lớp, không ai nói gì. Chỉ còn tiếng quạt trần, tiếng mưa và tiếng đồng hồ tích tắc.','narr');
+  await holdBreath();
+  await sleep(2600);
+  S('phone','on');Snd.buzz();Snd.sting();flash();shake();
+  thread('Na','số chưa lưu');chatShow(true);
+  await incoming('Em thấy đèn lớp anh rồi.');
+  await sleep(1300);chatShow(false);
+  await line('','Điện thoại tự sáng lên trong tay Dạt, như có ai đang nhìn qua vai cậu. Rèm đã kéo kín, vậy mà…','narr');
+  if(noise>=40){rattle();await line('','Tay nắm cửa lắc nhẹ. Rồi dừng lại, như đang lắng nghe.','narr');}
+
+  /* Cảnh 11 */
+  setLabel('Cảnh 11 / 14','Tiếng gõ cửa');
+  Snd.hb(118);loc('hall',true);cam('door',true);S('outside','1');Snd.knock(3,.7);cap('Cộc. Cộc. Cộc.');
+  await sleep(2200);
+  await line('','Ba tiếng gõ, chậm, đều, như có người đang đếm.','narr');
+  loc('',true);cam('door');
+  await sleep(3800);Snd.knock(5,.14);
+  await line('','Im lặng kéo dài. Rồi tiếng gõ dồn dập, gấp gáp, khác hẳn lúc nãy.','narr');
+  await line('Giọng ngoài cửa','“Anh Dạt ơi, mở cửa cho em với.”','say');
+  await line('Minh','“Giọng nghe giống em cậu thật…”','say whisper');
+  await line(H,'“Cô biết. Chính vì vậy không ai được trả lời, không ai được lại gần cửa. Dạt, em ngồi lại với cô.”','say whisper');
+
+  /* Cảnh 12 */
+  setLabel('Cảnh 12 / 14','Trước cánh cửa');
+  const did={};
+  for(;;){
+    const opts=[];
+    if(!did.peek)opts.push(['peek','Nhìn qua ô kính nhỏ trên cửa']);
+    if(!did.listen)opts.push(['listen','Lắng nghe']);
+    if(!did.ask)opts.push(['ask','Thì thầm hỏi: “Na, con mèo của em tên gì?”']);
+    if(!trip&&!did.old)opts.push(['old','Kéo lại tin nhắn cũ trong điện thoại']);
+    opts.push(['ready','Đủ rồi. Đến lúc quyết định.']);
+    const k=await choose('Dạt nhìn chằm chằm vào cánh cửa.',opts.map(o=>o[1]));
+    const key=opts[k][0];
+    if(key==='ready')break;
+    did[key]=true;
+    if(key==='peek'){rec('Trước cửa','Nhìn qua ô kính');meters(-3,0);gap(true);Snd.hb(126);
+      await line('','Qua ô kính chỉ thấy một bóng thấp ngược sáng. Cái bóng không nhúc nhích, và trên mặt kính không có chút hơi thở nào.','narr');gap(false);
+      clue('Qua ô kính cửa: không có hơi thở đọng trên kính.');}
+    else if(key==='listen'){rec('Trước cửa','Lắng nghe');meters(-2,0);
+      await line('','Tiếng thở gấp, nhưng đều đến lạ. Không có tiếng sụt sịt của một đứa trẻ đang khóc.','narr');}
+    else if(key==='ask'){rec('Trước cửa','Hỏi tên con mèo');meters(-2,8);looped=true;
+      await line('Dạt','“Na… con mèo của em tên gì?”','say whisper');
+      await sleep(1800);
+      await line('Giọng ngoài cửa','“Anh Dạt ơi, mở cửa cho em với.”','say');
+      await line('','Y hệt câu lúc nãy. Từng nhịp thở, từng chỗ ngập ngừng, giống như một đoạn ghi âm bị phát lại.','narr');
+      clue('Giọng ngoài cửa lặp lại y hệt dù Dạt hỏi câu khác: có thể là ghi âm.');}
+    else{rec('Trước cửa','Xem tin nhắn cũ');trip=true;meters(-4,0);
+      await line('','Dạt kéo lên tin nhắn buổi sáng: “Pin em còn 3% à… chiều anh nhớ đón em nha!” Vậy ai đang đứng ngoài kia?','narr');
+      clue('Na nhắn sáng nay: chuyến đi hoãn, em ở trường, pin còn 3%. Na hay kết câu bằng “nha 🐰”.');}
+  }
+
+  /* Cảnh 13 */
+  setLabel('Cảnh 13 / 14','Phòng hiệu trưởng');
+  Snd.hb(0);loc('office',true);cam('screens',true);Snd.stat(.6);
+  await line('','Trên màn hình, dãy A chỉ còn nhiễu hạt trắng. Đèn đỏ trên bàn điều khiển nhấp nháy.','narr');
+  cam('face');
+  await line(Q,'“Thầy mất hình camera dãy A rồi. Tùng, em giữ nguyên vị trí, không ai tự ý ra hành lang.”','say whisper');
+  S('mic','1');Snd.mic();Snd.stat(.8);
+  await line('Loa phát thanh','“Thông báo từ ban giám hiệu: toàn trường tiếp tục giữ nguyên vị trí. Giáo viên chỉ mở cửa khi có xác nhận chính thức.”','say');
+  S('mic','0');loc('',true);cam('door',true);
+
+  /* Cảnh 14 */
+  setLabel('Cảnh 14 / 14','Lựa chọn');
+  Snd.hb(126);knockT=setInterval(()=>{Snd.knock(1);},3200);
+  if(calm<35)await line('Dạt (nghĩ)','Tim em đập mạnh đến mức em nghe thấy cả trong tai.','think');
+  await line(H,'“Dạt, dù em quyết định thế nào, cô cũng muốn em nhớ: cô đang ở đây.”','say whisper');
+  c=await choose('Tiếng gõ cửa vẫn tiếp tục.',['A. MỞ CỬA','B. KHÔNG MỞ CỬA'],{big:true});
+  rec('Cánh cửa',c===0?'A. Mở cửa':'B. Không mở cửa');
+  const kind=c===0?'open':(told?(calm>=40&&noise<60?'good':'shaken'):'silent');
+  await ending(kind);
+  await finale(kind);
+}
+
+const naLine=()=>naQuiet?'Trong buồng vệ sinh dãy B, Na vẫn ôm chặt đầu gối, im lặng. Em an toàn, ít nhất là lúc này.':'Trong buồng vệ sinh dãy B, Na chưa biết rằng người ngoài hành lang có thể đã nghe thấy tiếng động của em.';
+
+async function ending(k){
+  clearInterval(knockT);Snd.hb(0);
+  els.act.replaceChildren();els.txt.textContent='';els.who.textContent='';
+  if(k==='open'){
+    cam('door',true);S('lock','0');Snd.lock();await sleep(900);
+    loc('hall',true);cam('door',true);S('ph','1');
+    await line('','Cánh cửa hé ra. Hành lang sáng trắng và trống không. Trên sàn chỉ có một chiếc điện thoại, màn hình đang sáng.','narr');
+    Snd.sting();flash();shake();
+    await line('Giọng ngoài cửa','“Anh Dạt ơi, mở cửa cho em với.”','say');
+    await line('','Giọng nói phát ra từ chiếc điện thoại, đúng từng nhịp thở. Ở cuối hành lang, tiếng bước chân đang tiến lại gần.','narr');
+  }else if(k==='silent'){
+    await line('','Tiếng gõ rồi cũng thưa dần và tắt. Cả lớp ngồi im thêm rất lâu. Loa vang lên, vẫn bảo giữ nguyên vị trí.','narr');
+    await line('','Dạt bấm gọi cho Na. Chuông không đổ: máy đã tắt nguồn.','narr');
+    Snd.buzz();Snd.sting();flash();
+    await line('','Điện thoại rung. Số lạ: “Cảm ơn anh đã không mở. Lần sau anh sẽ mở thôi.”','narr');
+    await line('',naLine(),'narr');
+  }else if(k==='shaken'){
+    rattle();shake();
+    await line('','Tay nắm cửa bị lắc mạnh, một lần, rồi hai lần. Có ai đó đang thử xem căn phòng này có lên tiếng hay không.','narr');
+    await line(H,'“Không ai nói gì. Cô ở đây.”','say whisper');
+    await line('','Cô Hạnh nắm tay Dạt, lòng bàn tay cô cũng lạnh. Tiếng động ban nãy khiến cả lớp run rẩy, nhưng không ai mở cửa.','narr');
+    await line('',naLine(),'narr');
+  }else{
+    await line('','Tiếng gõ dần thưa rồi tắt. Cô Hạnh chụp lại số lạ, giữ chặt điện thoại của Dạt: “Cô sẽ trao lại cho nhà trường.”','narr');
+    loc('hall',true);cam('door',true);S('ph','1');
+    await line('','Ngoài hành lang, bước chân lùi dần, bỏ lại một chiếc điện thoại cũ vẫn phát đi phát lại một giọng nói: giọng Na, cắt từ một tin nhắn thoại cũ.','narr');
+    loc('',true);cam('');
+    await line('Dạt (nghĩ)','Ai đã giữ tin nhắn thoại của em mình?','think');
+    await line('',naLine(),'narr');
+  }
+}
+
+async function finale(k){
+  Snd.silence();els.black.classList.remove('on');
+  loc('hall',true);cam('door',true);Snd.step(3,true);await sleep(1600);
+  loc('wc',true);cam('na',true);Snd.drip();await sleep(1500);
+  loc('office',true);cam('face',true);Snd.stat(.4);await sleep(1500);
+  loc('',true);cam('',true);S('light','dim');
+  await sleep(3200);
+  Snd.boom();flash();setTimeout(flash,180);shake();cap('ĐÙNG!!');S('light','dark');
+  await sleep(1100);
+  els.black.classList.add('on');
+  await sleep(1600);
+  $('#tbc').classList.add('on');
+  await sleep(5500);
+  showEnd(k);
+}
+
+function showEnd(k){
+  const E={open:['Giọng nói quen thuộc','Bạn đã mở cửa. Giọng nói của người thân là thứ dễ bị mượn nhất. Và tiếng nổ cuối cùng cho thấy câu chuyện chưa dừng ở đây.'],
+    silent:['Tin nhắn cuối','Bạn không mở cửa, nhưng cũng không nói với ai. Có những điều chỉ an toàn hơn khi được chia sẻ. Và rồi tiếng nổ lại vang lên.'],
+    shaken:['Tiếng động kéo dài','Bạn đã báo cho cô, nhưng nỗi hoảng loạn và tiếng động khiến cả lớp phải đi qua những phút rất dài. Rồi tiếng nổ thứ ba vang lên.'],
+    good:['Đúng người, đúng lúc','Bạn bình tĩnh, tin cô giáo và chờ thông báo chính thức. Nhưng tiếng nổ cuối cùng báo rằng đêm nay còn dài.']};
+  seen.add(k);
+  els.dlg.hidden=true;els.endBox.hidden=false;
+  $('#endH').textContent=E[k][0];$('#endP').textContent=E[k][1];
+  const ul=$('#recap');ul.replaceChildren();
+  const add=(a,b)=>{const li=document.createElement('li');const sp=document.createElement('span');sp.textContent=a;li.append(sp,document.createTextNode(b));ul.append(li);};
+  log.forEach(([a,b])=>add(a,b));
+  add('Manh mối tìm thấy',clues.length+' / 6');
+  add('Cuối cùng','Bình tĩnh '+calm+' · Độ ồn '+noise);
+  add('Kết thúc đã thấy',seen.size+' / 4');
+  setLabel('Kết thúc','Còn tiếp');
+}
+function begin(){run++;story();}
+
+/* ---------- wiring ---------- */
+function updMute(){const m=Snd.muted();els.mute.textContent='Âm thanh: '+(m?'tắt':'bật');els.mute.setAttribute('aria-pressed',String(m));}
+$('#startSound').onclick=()=>{Snd.init();Snd.setMuted(false);updMute();begin();};
+$('#startQuiet').onclick=()=>{Snd.setMuted(true);updMute();begin();};
+$('#again').onclick=()=>{run++;clearInterval(knockT);Snd.silence();begin();};
+els.mute.onclick=()=>{Snd.setMuted(!Snd.muted());updMute();};
+$('#clueBtn').onclick=()=>{const p=$('#cluePanel');p.hidden=!p.hidden;};
+$('#gear').onclick=()=>{const p=$('#settings');p.hidden=!p.hidden;$('#gear').setAttribute('aria-expanded',String(!p.hidden));};
+$('#vol').oninput=e=>Snd.setVol(e.target.value/100);
+function updV(){const has='speechSynthesis' in window&&speechSynthesis.getVoices().some(v=>/^vi/i.test(v.lang));$('#vtog').textContent='Giọng nói: '+(Snd.voice()?(has?'bật':'bật (máy chưa có giọng tiếng Việt)'):'tắt');}
+$('#vtog').onclick=()=>{Snd.setVoice(!Snd.voice());if(!Snd.voice())Snd.hush();updV();};
+function updF(){$('#ftog').textContent='Hiệu ứng mạnh: '+(fxOn?'bật':'tắt');}
+$('#ftog').onclick=()=>{fxOn=!fxOn;updF();};
+try{speechSynthesis.addEventListener('voiceschanged',updV);}catch(e){}
+updV();updF();
+
+buildRoom();
+})();
+</script>
+
+</body></html>
